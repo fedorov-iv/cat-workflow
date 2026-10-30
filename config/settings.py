@@ -5,14 +5,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'dev-only-not-a-secret'
 DEBUG = True
 ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    '63ce-45-140-167-194.ngrok-free.app',  
+    '*'
 ]
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://63ce-45-140-167-194.ngrok-free.app' # Ваш точный адрес ngrok
-]
+STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles' 
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -31,6 +28,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
