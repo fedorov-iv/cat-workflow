@@ -1,0 +1,124 @@
+{% extends 'arm/base.html' %}
+
+{% block content %}
+<form method="get" id="filters" class="card shadow-sm mb-3">
+  <div class="card-body row g-3 align-items-end">
+    {% for f in filters %}
+      <div class="col-md-3">
+        <label class="form-label" for="filter-{{ f.name }}">{{ f.label }}</label>
+        <select id="filter-{{ f.name }}" name="{{ f.name }}" data-autocomplete="{{ f.url }}"
+                data-placeholder="Все" autocomplete="off">
+          <option value="">Все</option>
+          {% if f.value %}<option value="{{ f.value }}" selected>{{ f.text }}</option>{% endif %}
+        </select>
+      </div>
+    {% endfor %}
+  </div>
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <span class="small text-body-secondary">Найдено заявок: {{ page.paginator.count }}</span>
+    <div>
+      {% if is_filtered %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'arm:application-list' %}">Сбросить</a>{% endif %}
+      <noscript><button type="submit" class="btn btn-sm btn-primary">Применить</button></noscript>
+    </div>
+  </div>
+</form>
+
+<div class="card shadow-sm">
+<table class="table table-hover align-middle mb-0">
+  <thead class="table-light">
+  <tr>
+    <th>#</th><th>Слушатель</th><th>Курс / проект</th><th>Поток</th><th>Статус</th><th>Трансферт</th><th>Действия</th>
+  </tr>
+  </thead>
+  <tbody>
+  {% for row in rows %}
+    {% with a=row.application %}
+    <tr>
+      <td><a href="{% url 'arm:application-detail' pk=a.pk %}">{{ a.pk }}</a></td>
+      <td>{{ a.user.get_full_name|default:a.user.get_username }}</td>
+      <td>{{ a.course }}<div class="small text-body-secondary">{{ a.project }}</div></td>
+      <td>{{ a.flow|default:'—' }}</td>
+      <td><span class="badge text-bg-info">{{ a.status_title }}</span>
+        <div class="small text-body-secondary">базовый: {{ a.get_status_display }}</div></td>
+      <td>{% if a.transfert %}{{ a.transfert.get_status_display }}{% else %}<span class="text-body-secondary">—</span>{% endif %}</td>
+      <td>{% include 'arm/_actions.html' %}</td>
+    </tr>
+    {% endwith %}
+  {% empty %}
+    <tr><td colspan="7" class="text-body-secondary">
+      {% if is_filtered %}По выбранным фильтрам заявок нет.{% else %}Заявок нет. Запустите python manage.py seed_demo{% endif %}
+    </td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% if page.paginator.num_pages > 1 %}
+<nav class="card-footer d-flex justify-content-between align-items-center">
+  <span class="small text-body-secondary">Страница {{ page.number }} из {{ page.paginator.num_pages }}</span>
+  <ul class="pagination pagination-sm mb-0">
+    {% if page.has_previous %}
+      <li class="page-item"><a class="page-link" href="{% querystring page=page.previous_page_number %}">«</a></li>
+    {% endif %}
+    {% for number in page.paginator.get_elided_page_range %}
+      {% if number == page.paginator.ELLIPSIS %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+      {% else %}
+        <li class="page-item{% if number == page.number %} active{% endif %}">
+          <a class="page-link" href="{% querystring page=number %}">{{ number }}</a></li>
+      {% endif %}
+    {% endfor %}
+    {% if page.has_next %}
+      <li class="page-item"><a class="page-link" href="{% querystring page=page.next_page_number %}">»</a></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+</div>
+<p class="small text-body-secondary mt-2">Кнопки с пунктиром — переход есть в матрице, но не выполнено условие (наведите курсор).</p>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    const form = document.getElementById('filters');
+    // При смене родительского фильтра зависимые сбрасываются: курс и поток другого проекта не подойдут.
+    const dependents = {project: ['course', 'flow'], course: ['flow']};
+    const narrowBy = ['project', 'course'];
+    const selects = {};
+
+    form.querySelectorAll('select[data-autocomplete]').forEach(function (el) {
+      const name = el.name;
+      selects[name] = new TomSelect(el, {
+        valueField: 'id',
+        labelField: 'text',
+        searchField: ['text'],
+        placeholder: el.dataset.placeholder,
+        allowEmptyOption: false,
+        maxOptions: 20,
+        preload: 'focus',
+        plugins: ['clear_button'],
+        render: {
+          no_results: () => '<div class="no-results">Ничего не найдено</div>',
+          loading: () => '<div class="spinner-border spinner-border-sm m-2"></div>',
+        },
+        load: function (query, callback) {
+          const params = new URLSearchParams({q: query});
+          for (const parent of narrowBy) {
+            const value = parent !== name && selects[parent] ? selects[parent].getValue() : '';
+            if (value) params.set(parent, value);
+          }
+          fetch(el.dataset.autocomplete + '?' + params)
+            .then((response) => response.json())
+            .then((data) => callback(data.results))
+            .catch(() => callback());
+        },
+        onChange: function () {
+          for (const child of dependents[name] || []) {
+            if (selects[child]) selects[child].clear(true);
+          }
+          form.submit();
+        },
+      });
+    });
+  })();
+</script>
+{% endblock %}

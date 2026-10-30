@@ -1,0 +1,53 @@
+<form method="post" enctype="multipart/form-data" action="{{ action_url }}" class="js-transition-form" novalidate>
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <div class="modal-header">
+    <div>
+      <h5 class="modal-title">{{ transition.button_label }} — заявка #{{ application.pk }}</h5>
+      <div class="small text-body-secondary">{{ transition.from_status.title }} → {{ transition.to_status.title }}</div>
+    </div>
+    {% if in_modal %}<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>{% endif %}
+  </div>
+
+  <div class="modal-body">
+    <div class="alert alert-danger js-modal-error {% if not error %}d-none{% endif %}">{{ error|default:'' }}</div>
+    {% if transition.form %}
+      <h6>{{ transition.form.title }}</h6>
+      {% if transition.form.description %}<p class="text-body-secondary">{{ transition.form.description|linebreaksbr }}</p>{% endif %}
+    {% endif %}
+    {% if transition.confirm_text %}<div class="alert alert-warning">{{ transition.confirm_text }}</div>{% endif %}
+
+    {% if form %}
+      {% for err in form.non_field_errors %}<div class="alert alert-danger">{{ err }}</div>{% endfor %}
+      {% for field in form %}
+        {% if field.widget_type == 'checkbox' %}
+          <div class="form-check mb-3" data-field="{{ field.html_name }}">
+            {{ field }}
+            <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {% for err in field.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+          </div>
+        {% else %}
+          <div class="mb-3" data-field="{{ field.html_name }}">
+            <label class="form-label{% if field.field.required %} fw-semibold{% endif %}" for="{{ field.id_for_label }}">
+              {{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
+            {{ field }}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+            {% for err in field.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+          </div>
+        {% endif %}
+      {% endfor %}
+    {% elif not transition.confirm_text %}
+      <p class="mb-0">Подтвердите переход заявки в статус «{{ transition.to_status.title }}».</p>
+    {% endif %}
+    <div class="d-none js-visibility-rules">{{ visibility|json_script }}</div>
+  </div>
+
+  <div class="modal-footer">
+    {% if in_modal %}
+      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+    {% else %}
+      <a class="btn btn-outline-secondary" href="{% if next %}{{ next }}{% else %}{% url 'arm:application-detail' pk=application.pk %}{% endif %}">Отмена</a>
+    {% endif %}
+    <button type="submit" class="btn btn-{{ transition.button_style }}">{{ transition.button_label }}</button>
+  </div>
+</form>

@@ -1,0 +1,5 @@
+Django>=5.1,<5.2
+django-nested-admin>=4.1
+djangorestframework>=3.15,<3.17
+drf-spectacular>=0.27,<0.29
+drf-spectacular-sidecar>=2025.10.1

@@ -1,0 +1,15 @@
+{% if not row.has_workflow %}
+  <span class="small text-body-secondary">Процесс не настроен — обработка старым кодом</span>
+{% else %}
+  {% for option in row.options %}
+    {% if option.allowed %}
+      <a class="btn btn-sm btn-{{ option.transition.button_style }} mb-1" data-transition-modal
+         href="{% url 'arm:application-transition' pk=row.application.pk transition_id=option.transition.pk %}?next={{ request.get_full_path|urlencode }}">
+        {{ option.transition.button_label }}</a>
+    {% else %}
+      <span class="btn btn-sm btn-blocked mb-1" title="{{ option.reasons|join:'; ' }}">{{ option.transition.button_label }}</span>
+    {% endif %}
+  {% empty %}
+    <span class="small text-body-secondary">Нет доступных действий</span>
+  {% endfor %}
+{% endif %}

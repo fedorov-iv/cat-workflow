@@ -1,0 +1,13 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<p>Копия создаётся неактивной. Формы и справочники общие, они не копируются.</p>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <input type="hidden" name="action" value="clone">
+  <input type="hidden" name="_selected_action" value="{{ workflow.pk }}">
+  <input type="hidden" name="apply" value="1">
+  <input type="submit" value="Клонировать" class="default">
+</form>
+{% endblock %}

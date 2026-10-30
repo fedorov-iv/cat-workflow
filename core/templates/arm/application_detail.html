@@ -1,0 +1,55 @@
+{% extends 'arm/base.html' %}
+
+{% block content %}
+{% with a=row.application %}
+<h2 class="mb-3">Заявка #{{ a.pk }} <span class="badge text-bg-info fs-6 align-middle">{{ a.status_title }}</span></h2>
+
+<div class="card shadow-sm mb-3"><div class="card-body">
+  <dl class="app-fields">
+    <dt>Проект</dt><dd>{{ a.project }}</dd>
+    <dt>Курс</dt><dd>{{ a.course }}</dd>
+    <dt>Слушатель</dt><dd>{{ a.user.get_username }}</dd>
+    <dt>Базовый статус</dt><dd>{{ a.get_status_display }} <span class="text-body-secondary">({{ a.status }})</span></dd>
+    <dt>Поток</dt><dd>{{ a.flow|default:'—' }}</dd>
+    <dt>Причина</dt><dd>{{ a.reason_choice|default:'—' }} {{ a.reason_detail }} {{ a.reason_text }}</dd>
+    <dt>Документ-основание</dt><dd>{% if a.reason_document %}<a href="{{ a.reason_document.file.url }}">{{ a.reason_document }}</a>{% else %}—{% endif %}</dd>
+    {% if a.transfert %}
+      <dt>Трансферт</dt><dd>{{ a.transfert.get_status_display }}</dd>
+      <dt>Дата ВИ</dt><dd>{{ a.transfert.enter_exam_date|default:'—' }}</dd>
+      <dt>Зачисление</dt><dd>{{ a.transfert.accept_date|default:'—' }}, приказ № {{ a.transfert.admission_order_number|default:'—' }} от {{ a.transfert.admission_order_date|default:'—' }}</dd>
+      <dt>Работодатель</dt><dd>{% if a.transfert.employer_pays %}{{ a.transfert.employer_name }} (ОГРН {{ a.transfert.employer_ogrn }}){% else %}—{% endif %}</dd>
+      <dt>Отчисление</dt><dd>{{ a.transfert.expulsion_date|default:'—' }}, приказ № {{ a.transfert.expulsion_order_number|default:'—' }}</dd>
+    {% endif %}
+  </dl>
+</div></div>
+
+<div class="card shadow-sm mb-4"><div class="card-body">
+  <strong class="me-2">Действия:</strong> {% include 'arm/_actions.html' %}
+  {% for option in row.options %}{% if not option.allowed %}
+    <div class="small text-body-secondary">«{{ option.transition.button_label }}» недоступно: {{ option.reasons|join:'; ' }}</div>
+  {% endif %}{% endfor %}
+</div></div>
+
+<h4>Журнал переходов</h4>
+<div class="card shadow-sm">
+<table class="table mb-0">
+  <thead class="table-light"><tr><th>Когда</th><th>Переход</th><th>Статус</th><th>Кто</th><th>Канал</th><th>Заполнено</th></tr></thead>
+  <tbody>
+  {% for entry in log %}
+    <tr>
+      <td>{{ entry.created_at|date:'d.m.Y H:i:s' }}</td>
+      <td>{{ entry.transition.button_label|default:'—' }}</td>
+      <td>{{ entry.from_status.title }} → {{ entry.to_status.title }}
+        <div class="small text-body-secondary">{{ entry.from_base_status }} → {{ entry.to_base_status }}</div></td>
+      <td>{{ entry.actor|default:'система' }}</td>
+      <td>{{ entry.get_channel_display }}</td>
+      <td class="small text-body-secondary">{{ entry.written_bindings|join:', ' }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="6" class="text-body-secondary">Переходов ещё не было</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endwith %}
+{% endblock %}
